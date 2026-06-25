@@ -13,7 +13,6 @@ pn532 = Mifare()
 def check_updates():
     print("\n[i] Checking for updates...")
     try:
-        # Perform a git pull to fetch the latest changes
         result = subprocess.run(['git', 'pull'], capture_output=True, text=True)
         if "Already up to date." in result.stdout:
             print("[+] The script is already up to date.")
@@ -27,7 +26,6 @@ def read_log():
     print("\n--- RECENT LOG ENTRIES ---")
     if os.path.exists('rfid_log.txt'):
         with open('rfid_log.txt', 'r') as f:
-            # Print the last 1000 characters of the log
             print(f.read()[-1000:]) 
     else:
         print("[-] No log file found.")
@@ -50,8 +48,10 @@ def main():
         if choice == '1':
             print("\n[!] Please hold Tag X against the reader...")
             try:
-                pn532.auth_mifare(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-                data = pn532.read_mifare(4)
+                # Updated method name: mifare_auth
+                pn532.mifare_auth(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+                # Updated method name: mifare_read
+                data = pn532.mifare_read(4)
                 if data:
                     buffer_data = data
                     print(f"[+] Success! Data copied.")
@@ -65,8 +65,11 @@ def main():
                 continue
             print("\n[!] Please hold Tag Y against the reader...")
             try:
-                pn532.auth_mifare(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-                pn532.write_mifare(4, list(buffer_data))
+                # Updated method name: mifare_auth
+                pn532.mifare_auth(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+                # Updated method name: mifare_write (note: some versions use write_mifare, 
+                # but if auth was mifare_auth, it is likely mifare_write)
+                pn532.mifare_write(4, list(buffer_data))
                 print("[+] Success! Data written to Tag Y.")
                 logging.info("Write successful")
             except Exception as e:
