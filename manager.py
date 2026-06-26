@@ -8,8 +8,8 @@ from py532lib.mifare import *
 logging.basicConfig(filename='rfid_log.txt', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
-# Här tvingar vi in din specifika adress 0x24
-pn532 = Mifare(address=0x24)
+# Initiera PN532 (utan argument då det inte verkar stödja 'address' i __init__)
+pn532 = Mifare()
 
 def check_updates():
     print("\n[i] Checking for updates...")
@@ -41,17 +41,18 @@ def print_menu():
 
 def main():
     buffer_data = None
+    # Standard nyckel för Mifare-taggar
     key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
     while True:
         choice = print_menu()
         
         if choice == '1':
-            print("\n[!] Hold Tag X against the reader...")
+            print("\n[!] Please hold Tag X against the reader...")
             try:
-                # Använder dina korrekta metodnamn
+                # Använder de exakta metodnamnen från din debug-lista
                 pn532.mifare_auth_a(4, key)
-                data = pn532.read_mifare(4)
+                data = pn532.mifare_read(4)
                 if data:
                     buffer_data = data
                     print(f"[+] Success! Data copied.")
@@ -63,7 +64,7 @@ def main():
             if buffer_data is None:
                 print("[-] Error: Buffer empty. Read a card first!")
                 continue
-            print("\n[!] Hold Tag Y against the reader...")
+            print("\n[!] Please hold Tag Y against the reader...")
             try:
                 pn532.mifare_auth_a(4, key)
                 pn532.mifare_write_standard(4, list(buffer_data))
