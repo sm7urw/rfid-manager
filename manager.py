@@ -9,89 +9,56 @@ from py532lib.mifare import *
 logging.basicConfig(filename='rfid_log.txt', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
-# Initiera PN532
 pn532 = Mifare()
-# Tvinga adressen till 0x24 (Monkey patching)
 pn532.address = 0x24
 
-def check_updates():
-    print("\n[i] Checking for updates...")
-    try:
-        result = subprocess.run(['git', 'pull'], capture_output=True, text=True)
-        if "Already up to date." in result.stdout:
-            print("[+] The script is already up to date.")
-        else:
-            print("[+] Update completed! Please restart the script.")
-    except Exception as e:
-        print(f"[-] Update failed: {e}")
-
-def read_log():
-    print("\n--- RECENT LOG ENTRIES ---")
-    if os.path.exists('rfid_log.txt'):
-        with open('rfid_log.txt', 'r') as f:
-            print(f.read()[-1000:]) 
-    else:
-        print("[-] No log file found.")
-
-def print_menu():
-    print("\n--- RFID CLI MANAGER ---")
-    print("1. Read from Tag X (Copy)")
-    print("2. Write to Tag Y (Paste)")
-    print("3. Read log file")
-    print("4. Check for updates")
-    print("5. Exit")
-    return input("Choose an option: ")
-
 def main():
-    # buffer_data lagrar råa bytes
     buffer_data = None
     key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
     while True:
-        choice = print_menu()
+        choice = input("\n1. Read (Copy)\n2. Write (Paste)\n5. Exit\nVal: ")
         
         if choice == '1':
-            print("\n[!] Please hold Tag X against the reader...")
+            print("\n[!] Håll Tag X mot läsaren...")
             try:
                 while not pn532.scan_field():
                     time.sleep(0.5)
                 
                 pn532.mifare_auth_a(4, key)
-                data = pn532.mifare_read(4)
                 
-                # Spara som bytes (en strikt datatyp som ofta löser concat-fel)
-                buffer_data = bytes(data)
+                # RÅ LÄSNING: Vi skickar kommandot manuellt istället för att anropa mifare_read()
+                # 0x30 är Mifare Read-kommandot, följt av blocknummer 4
+                data = pn532.call_command(bytearray([0x30, 4]), 20)
                 
-                print(f"[+] Success! Data copied: {list(buffer_data)}")
-                logging.info(f"Read successful: {list(buffer_data)}")
+                # Spara datan (PN532 skickar ofta tillbaka ett svar med extra bytes)
+                # Vi tar de 16 sista bytesen som faktiskt är datat
+                buffer_data = data[-16:]
+                
+                print(f"[+] Lyckades! Kopierade data: {list(buffer_data)}")
             except Exception as e:
-                print(f"[-] Read error: {e}")
+                print(f"[-] Read error (Manuell): {e}")
 
         elif choice == '2':
             if buffer_data is None:
-                print("[-] Error: Buffer empty. Read a card first!")
+                print("[-] Bufferten är tom!")
                 continue
-            print("\n[!] Please hold Tag Y against the reader...")
+            print("\n[!] Håll Tag Y mot läsaren...")
             try:
                 while not pn532.scan_field():
                     time.sleep(0.5)
-                    
+                
                 pn532.mifare_auth_a(4, key)
                 
-                # Skriv datan som bytes
-                pn532.mifare_write_standard(4, buffer_data)
+                # RÅ SKRIVNING: Vi skickar Write-kommandot (0xA0) och block (4)
+                # Sedan lägger vi till datat (buffer_data)
+                cmd = bytearray([0xA0, 4]) + buffer_data
+                pn532.call_command(cmd, 20)
                 
-                print("[+] Success! Data written to Tag Y.")
-                logging.info(f"Write successful")
+                print("[+] Lyckades! Skrev data till Tag Y.")
             except Exception as e:
                 print(f"[-] Write error: {e}")
-
-        elif choice == '3':
-            read_log()
-        elif choice == '4':
-            check_updates()
         elif choice == '5':
-            print("Exiting...")
             break
 
 if __name__ == "__main__":
