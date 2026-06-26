@@ -11,7 +11,7 @@ logging.basicConfig(filename='rfid_log.txt', level=logging.INFO,
 
 # Initiera PN532
 pn532 = Mifare()
-# Tvinga adressen till 0x24
+# Tvinga adressen till 0x24 (Monkey patching)
 pn532.address = 0x24
 
 def check_updates():
@@ -43,6 +43,7 @@ def print_menu():
     return input("Choose an option: ")
 
 def main():
+    # buffer_data lagrar råa bytes
     buffer_data = None
     key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
@@ -58,8 +59,8 @@ def main():
                 pn532.mifare_auth_a(4, key)
                 data = pn532.mifare_read(4)
                 
-                # Spara som ren bytearray
-                buffer_data = bytearray(data)
+                # Spara som bytes (en strikt datatyp som ofta löser concat-fel)
+                buffer_data = bytes(data)
                 
                 print(f"[+] Success! Data copied: {list(buffer_data)}")
                 logging.info(f"Read successful: {list(buffer_data)}")
@@ -77,7 +78,7 @@ def main():
                     
                 pn532.mifare_auth_a(4, key)
                 
-                # Skriv direkt med bytearray-objektet
+                # Skriv datan som bytes
                 pn532.mifare_write_standard(4, buffer_data)
                 
                 print("[+] Success! Data written to Tag Y.")
