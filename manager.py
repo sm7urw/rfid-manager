@@ -8,7 +8,8 @@ from py532lib.mifare import *
 logging.basicConfig(filename='rfid_log.txt', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
-pn532 = Mifare()
+# Här tvingar vi in din specifika adress 0x24
+pn532 = Mifare(address=0x24)
 
 def check_updates():
     print("\n[i] Checking for updates...")
@@ -18,7 +19,6 @@ def check_updates():
             print("[+] The script is already up to date.")
         else:
             print("[+] Update completed! Please restart the script.")
-            print(result.stdout)
     except Exception as e:
         print(f"[-] Update failed: {e}")
 
@@ -41,17 +41,17 @@ def print_menu():
 
 def main():
     buffer_data = None
+    key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
     while True:
         choice = print_menu()
         
         if choice == '1':
-            print("\n[!] Please hold Tag X against the reader...")
+            print("\n[!] Hold Tag X against the reader...")
             try:
-                # Updated method name: mifare_auth
-                pn532.mifare_auth(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-                # Updated method name: mifare_read
-                data = pn532.mifare_read(4)
+                # Använder dina korrekta metodnamn
+                pn532.mifare_auth_a(4, key)
+                data = pn532.read_mifare(4)
                 if data:
                     buffer_data = data
                     print(f"[+] Success! Data copied.")
@@ -63,13 +63,10 @@ def main():
             if buffer_data is None:
                 print("[-] Error: Buffer empty. Read a card first!")
                 continue
-            print("\n[!] Please hold Tag Y against the reader...")
+            print("\n[!] Hold Tag Y against the reader...")
             try:
-                # Updated method name: mifare_auth
-                pn532.mifare_auth(4, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-                # Updated method name: mifare_write (note: some versions use write_mifare, 
-                # but if auth was mifare_auth, it is likely mifare_write)
-                pn532.mifare_write(4, list(buffer_data))
+                pn532.mifare_auth_a(4, key)
+                pn532.mifare_write_standard(4, list(buffer_data))
                 print("[+] Success! Data written to Tag Y.")
                 logging.info("Write successful")
             except Exception as e:
@@ -80,10 +77,7 @@ def main():
         elif choice == '4':
             check_updates()
         elif choice == '5':
-            print("Exiting...")
             break
-        else:
-            print("[-] Invalid choice.")
 
 if __name__ == "__main__":
     main()
