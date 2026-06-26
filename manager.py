@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logging
+import time
 from py532lib.i2c import *
 from py532lib.mifare import *
 
@@ -8,8 +9,10 @@ from py532lib.mifare import *
 logging.basicConfig(filename='rfid_log.txt', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
-# Initiera PN532 (utan argument då det inte verkar stödja 'address' i __init__)
+# Initiera PN532
 pn532 = Mifare()
+# Tvinga adressen till 0x24 (Monkey patching)
+pn532.address = 0x24
 
 def check_updates():
     print("\n[i] Checking for updates...")
@@ -41,7 +44,6 @@ def print_menu():
 
 def main():
     buffer_data = None
-    # Standard nyckel för Mifare-taggar
     key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
     while True:
@@ -50,12 +52,15 @@ def main():
         if choice == '1':
             print("\n[!] Please hold Tag X against the reader...")
             try:
-                # Använder de exakta metodnamnen från din debug-lista
+                # Vänta på att en tagg hittas
+                while not pn532.scan_field():
+                    time.sleep(0.5)
+                
                 pn532.mifare_auth_a(4, key)
                 data = pn532.mifare_read(4)
                 if data:
                     buffer_data = data
-                    print(f"[+] Success! Data copied.")
+                    print(f"[+] Success! Data copied: {data.hex()}")
                     logging.info(f"Read successful: {data.hex()}")
             except Exception as e:
                 print(f"[-] Read error: {e}")
@@ -66,6 +71,10 @@ def main():
                 continue
             print("\n[!] Please hold Tag Y against the reader...")
             try:
+                # Vänta på att en tagg hittas
+                while not pn532.scan_field():
+                    time.sleep(0.5)
+                    
                 pn532.mifare_auth_a(4, key)
                 pn532.mifare_write_standard(4, list(buffer_data))
                 print("[+] Success! Data written to Tag Y.")
