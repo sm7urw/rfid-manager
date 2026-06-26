@@ -48,22 +48,22 @@ def main():
     
     while True:
         choice = print_menu()
-        
-        if choice == '1':
+
+      if choice == '1':
             print("\n[!] Please hold Tag X against the reader...")
             try:
-                # Vänta på att en tagg hittas
                 while not pn532.scan_field():
                     time.sleep(0.5)
                 
                 pn532.mifare_auth_a(4, key)
                 data = pn532.mifare_read(4)
                 if data:
-                    buffer_data = data
-                    print(f"[+] Success! Data copied: {data.hex()}")
-                    logging.info(f"Read successful: {data.hex()}")
+                    # KONVERTERA TILL LISTA HÄR
+                    buffer_data = list(data) 
+                    print(f"[+] Success! Data copied: {buffer_data}")
+                    logging.info(f"Read successful: {buffer_data}")
             except Exception as e:
-                print(f"[-] Read error: {e}")
+                print(f"[-] Read error: {e}") 
 
         elif choice == '2':
             if buffer_data is None:
