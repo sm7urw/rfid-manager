@@ -49,7 +49,7 @@ def main():
     while True:
         choice = print_menu()
 
-      if choice == '1':
+        if choice == '1':
             print("\n[!] Please hold Tag X against the reader...")
             try:
                 while not pn532.scan_field():
