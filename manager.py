@@ -11,7 +11,7 @@ logging.basicConfig(filename='rfid_log.txt', level=logging.INFO,
 
 # Initiera PN532
 pn532 = Mifare()
-# Tvinga adressen till 0x24 (Monkey patching)
+# Fix: Tvinga adressen till 0x24 (Monkey patching för att kringgå bibliotekets standard)
 pn532.address = 0x24
 
 def check_updates():
@@ -44,26 +44,29 @@ def print_menu():
 
 def main():
     buffer_data = None
+    # Standardnyckel för Mifare-taggar
     key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
     
     while True:
         choice = print_menu()
-
+        
         if choice == '1':
             print("\n[!] Please hold Tag X against the reader...")
             try:
+                # Vänta på att en tagg hittas
                 while not pn532.scan_field():
                     time.sleep(0.5)
                 
                 pn532.mifare_auth_a(4, key)
-                data = pn532.mifare_read(4)
-                if data:
-                    # KONVERTERA TILL LISTA HÄR
-                    buffer_data = list(data) 
-                    print(f"[+] Success! Data copied: {buffer_data}")
-                    logging.info(f"Read successful: {buffer_data}")
+                raw_data = pn532.mifare_read(4)
+                
+                # Konvertera till lista för att undvika typ-konflikter
+                buffer_data = list(raw_data)
+                
+                print(f"[+] Success! Data copied: {buffer_data}")
+                logging.info(f"Read successful: {buffer_data}")
             except Exception as e:
-                print(f"[-] Read error: {e}") 
+                print(f"[-] Read error: {e}")
 
         elif choice == '2':
             if buffer_data is None:
@@ -76,9 +79,11 @@ def main():
                     time.sleep(0.5)
                     
                 pn532.mifare_auth_a(4, key)
-                pn532.mifare_write_standard(4, list(buffer_data))
+                # Skriv datan från bufferten
+                pn532.mifare_write_standard(4, buffer_data)
+                
                 print("[+] Success! Data written to Tag Y.")
-                logging.info("Write successful")
+                logging.info(f"Write successful with data: {buffer_data}")
             except Exception as e:
                 print(f"[-] Write error: {e}")
 
@@ -87,6 +92,7 @@ def main():
         elif choice == '4':
             check_updates()
         elif choice == '5':
+            print("Exiting...")
             break
 
 if __name__ == "__main__":
